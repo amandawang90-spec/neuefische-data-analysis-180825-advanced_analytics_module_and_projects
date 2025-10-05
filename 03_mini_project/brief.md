@@ -67,7 +67,7 @@ Examples:
 
     The informal phrasing:
 
-    `“We are 95% confident that the true average delivery time is between 3.8 and 4.2 days.”`
+    “We are 95% confident that the true average delivery time is between 3.8 and 4.2 days.”
 
     is really a communication shortcut used for `business or non-technical audiences` — but not technically correct from a statistical point of view.
 
@@ -75,7 +75,7 @@ Examples:
 
     A 95% confidence interval means:
 
-    `If we repeatedly drew random samples from the same population and calculated a confidence interval each time, then approximately 95% of those intervals would contain the true population mean.`
+    If we repeatedly drew random samples from the same population and calculated a confidence interval each time, then approximately 95% of those intervals would contain the true population mean.
 
     | Context                    | How to Phrase It                                                                                                                                                      |
     | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
