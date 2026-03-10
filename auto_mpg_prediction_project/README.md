@@ -1,11 +1,7 @@
 ## Project: Predicting Car MPG
 
----
-
 ## Project Overview
 The goal was to predict **miles per gallon (mpg)** using car features: cylinders, weight, horsepower, displacement, acceleration, model year, and origin.
-
----
 
 ## Data Preprocessing
 Several important steps were taken before modelling:
@@ -13,7 +9,6 @@ Several important steps were taken before modelling:
 - **One-Hot Encoding** applied to `origin` and `cylinders` as categorical features
 - **StandardScaler** applied to all numerical features
 - **model** was treated as a numerical feature representing the year
----
 
 ## Models Compared
 
@@ -22,8 +17,6 @@ Several important steps were taken before modelling:
 | PCA + Regression | 0.8487 | 0.8141 | 0.0346 |
 | Lasso CV | 0.8611 | 0.8309 | 0.0302 |
 | **Random Forest (Tuned)** | 0.9513 | **0.8912** | 0.0601 |
-
----
 
 ## Key Findings
 
@@ -44,8 +37,6 @@ Several important steps were taken before modelling:
 - Least interpretable — components are abstract combinations of features
 - Not ideal here since only 7 features — PCA adds little value with few features
 
----
-
 ## What Drives MPG?
 
 Based on Lasso and Random Forest findings, the most influential features are likely:
@@ -55,16 +46,12 @@ Based on Lasso and Random Forest findings, the most influential features are lik
 - **Model year** — newer cars tend to be more fuel efficient
 - **Origin** — Japanese/European cars tend to be more fuel efficient than American
 
----
-
 ## Residual Analysis
 The Lasso residual plot confirmed:
 - ✅ Residuals centered around 0 — unbiased predictions
 - ✅ No curve — linear relationship is appropriate
 - ✅ No funnel shape — constant variance
 - ⚠️ A few large positive residuals — model slightly under-predicts high mpg cars
-
----
 
 ## Final Recommendation
 
@@ -75,4 +62,6 @@ The Lasso residual plot confirmed:
 | **Production deployment** | Tuned Random Forest |
 | **Explaining to stakeholders** | Lasso CV |
 
-> Overall, the **Tuned Random Forest** is the best model for predicting mpg with a Test R² of 0.8912. However, if interpretability is important — for example, understanding which car features most affect fuel efficiency — **Lasso CV** is the recommended choice with a strong Test R² of 0.8309 and the smallest overfitting gap of 0.0302.
+
+> Overall, the **Tuned Random Forest** is the best model for predicting mpg with a Test R² of 0.8912. 
+  However, if interpretability is important — for example, understanding which car features most affect fuel efficiency — **Lasso CV** is the recommended choice with a strong Test R² of 0.8309 and the smallest overfitting gap of 0.0302.
