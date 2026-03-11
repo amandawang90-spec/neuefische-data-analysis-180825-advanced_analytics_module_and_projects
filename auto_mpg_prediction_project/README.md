@@ -12,6 +12,7 @@ A machine learning project that predicts car fuel efficiency (miles per gallon) 
 | **Task** | Supervised Regression |
 | **Dataset** | Auto MPG Dataset (392 records) |
 | **Models** | Lasso CV, Ridge CV, PCA + Regression, Random Forest |
+| **Notebook** | [auto_mpg_prediction.ipynb](https://github.com/amandawang90-spec/neuefische-data-analysis-180825-advanced_analytics_module_and_projects/blob/main/auto_mpg_prediction_project/auto_mpg_prediction.ipynb) |
 
 ---
 
@@ -41,7 +42,7 @@ The dataset contains information about cars from the 1970s and 1980s.
 | `displacement` | Numerical | Engine displacement (cc) |
 | `acceleration` | Numerical | Acceleration |
 | `model` | Numerical | Model year (e.g. 70 = 1970) |
-| `cylinders` | Categorical | Number of cylinders (3, 4, 5, 6, 8) |
+| `cylinders` | Categorical | Number of cylinders (4, 6, 8) |
 | `origin` | Categorical | 1 = American, 2 = European, 3 = Japanese |
 
 ---
@@ -79,6 +80,7 @@ The dataset contains information about cars from the 1970s and 1980s.
 5. **Linear Model Assumption Check (Part 1)**
    - Assumption 1: Linearity ✅ confirmed by scatter plots
    - Assumption 2: Multicollinearity ⚠️ severe but handled by models
+   - Assumptions 3 & 4 require model residuals → checked in Phase 2
 
 ---
 
@@ -88,6 +90,7 @@ The dataset contains information about cars from the 1970s and 1980s.
 #### 2a. Feature Engineering & Preprocessing
 - **Identify feature types** — numerical vs categorical
 - **Log transformation** applied to `horsepower` only (skew=1.09)
+  - weight and displacement not transformed (skew < 1)
 - **StandardScaler** applied to all numerical features
 - **One-Hot Encoding** applied to categorical features (origin, cylinders)
 - **Train/Test Split** — 80% train, 20% test, random_state=42
@@ -141,9 +144,29 @@ The dataset contains information about cars from the 1970s and 1980s.
 ---
 
 ### Phase 4: Final Prediction
-- New car specifications prepared in same format as training data
-- All pipelines used to predict mpg
-- Predictions compared across all models
+New car specifications used for prediction:
+
+```python
+new_car = pd.DataFrame({
+    'weight':         [3000],          # raw value — not logged
+    'log_horsepower': [np.log(100)],   # logged — pipeline expects this
+    'displacement':   [200],           # raw value — not logged
+    'acceleration':   [15.0],
+    'model':          [80],            # model year 1980
+    'origin':         [3],             # Japanese
+    'cylinders':      [4]
+})
+```
+
+| Specification | Value |
+|---|---|
+| Weight | 3000 lbs |
+| Horsepower | 100 hp |
+| Displacement | 200 cc |
+| Acceleration | 15.0 |
+| Model Year | 1980 |
+| Origin | Japan (3) |
+| Cylinders | 4 |
 
 ---
 
@@ -154,9 +177,26 @@ $$\text{Loss} = \sum(y_i - \hat{y}_i)^2 + \alpha \sum|\beta_j|$$
 
 - Auto-selects best alpha via 5-fold cross-validation (LassoCV)
 - Best alpha = **0.0133**
-- Automatically removes weak features (coefficient = 0)
-- Removed feature: `cylinders_6`
-- Most interpretable linear model
+- Features kept: **10**, Features removed: **1**
+- Removed feature: `cylinders_6` (coefficient = 0)
+
+**Lasso Coefficients:**
+
+| Feature | Coefficient | Interpretation |
+|---|---|---|
+| `log_horsepower` | -3.4477 | Strongest effect — more power = much less mpg |
+| `weight` | -2.9183 | Heavier car = less mpg |
+| `cylinders_4` | +2.8874 | 4 cylinders most fuel efficient |
+| `origin_3 (Japan)` | +2.6427 | Japanese cars most fuel efficient |
+| `model year` | +2.5696 | Newer cars = more fuel efficient |
+| `origin_2 (Europe)` | +1.6799 | European cars more efficient than American |
+| `cylinders_8` | +1.5580 | Positive vs baseline |
+| `cylinders_5` | +1.2782 | Rare category — positive effect |
+| `displacement` | +1.1796 | Mild positive after controlling other features |
+| `acceleration` | -0.8025 | Mild negative effect |
+| `cylinders_6` | 0.0000 | ❌ Removed by Lasso — not useful |
+
+---
 
 ### 2. Ridge Regression (L2 Regularization)
 $$\text{Loss} = \sum(y_i - \hat{y}_i)^2 + \alpha \sum\beta_j^2$$
@@ -166,16 +206,46 @@ $$\text{Loss} = \sum(y_i - \hat{y}_i)^2 + \alpha \sum\beta_j^2$$
 - Shrinks all coefficients but never removes them
 - Handles multicollinearity well
 
+---
+
 ### 3. Principal Component Regression (PCR)
 $$X \xrightarrow{\text{PCA}} \text{Components} \xrightarrow{\text{Linear Regression}} \hat{y}$$
 
 - PCA reduces features to **5 components** (96% variance retained)
-- Component breakdown:
-  - PC1: 63.17% — engine size (weight, horsepower, displacement)
-  - PC2: 13.80% — model year and acceleration
-  - PC3: 12.01% — origin (Japanese vs European)
-  - PC4: 3.90%
-  - PC5: 2.87%
+
+**Component Breakdown:**
+
+| Component | Variance | Cumulative | Main Theme | Effect on MPG |
+|---|---|---|---|---|
+| PC1 | 62.52% | 62.52% | Engine size & power (weight, horsepower, displacement) | ❌ Less mpg |
+| PC2 | 14.57% | 77.10% | Model year effect | ✅ More mpg |
+| PC3 | 12.23% | 89.32% | Acceleration profile | ❌ Less mpg |
+| PC4 | 3.83% | 93.15% | 6-cylinder distinction | ❌ Weak negative |
+| PC5 | 2.86% | 96.01% | Geographic origin (Japan vs Europe) | ✅ More mpg |
+
+**PCA Equation:**
+```
+MPG = 23.5994
+      - 3.6162 × PC1
+      + 0.1213 × PC2
+      - 2.6683 × PC3
+      - 0.4061 × PC4
+      + 0.2157 × PC5
+```
+
+**Component Composition:**
+- **PC1** — dominated by weight (+0.47), log_horsepower (+0.50), displacement (+0.49)
+  → large, powerful, old American cars → less mpg
+- **PC2** — dominated by model year (+0.86)
+  → newer cars → more mpg
+- **PC3** — dominated by acceleration (+0.81)
+  → fast but older cars → less mpg
+- **PC4** — dominated by cylinders_6 (+0.77)
+  → 6-cylinder distinction → weak negative effect
+- **PC5** — dominated by origin_3 Japan (+0.72) vs origin_2 Europe (-0.65)
+  → Japanese vs European origin → more mpg
+
+---
 
 ### 4. Random Forest Regression
 $$\hat{y} = \frac{1}{T}\sum_{t=1}^{T} f_t(x)$$
@@ -202,21 +272,6 @@ $$\hat{y} = \frac{1}{T}\sum_{t=1}^{T} f_t(x)$$
 
 ## 🔍 Key Findings
 
-### Top Features Driving MPG (from Lasso Coefficients)
-
-| Feature | Coefficient | Interpretation |
-|---|---|---|
-| `log_horsepower` | -3.45 | Strongest effect — more power = much less mpg |
-| `weight` | -2.92 | Heavier car = less mpg |
-| `cylinders_4` | +2.89 | 4 cylinders most fuel efficient |
-| `origin_3 (Japan)` | +2.64 | Japanese cars most fuel efficient |
-| `model year` | +2.57 | Newer cars = more fuel efficient |
-| `origin_2 (Europe)` | +1.68 | European cars more efficient than American |
-| `cylinders_8` | +1.56 | Positive vs baseline |
-| `displacement` | +1.17 | Mild positive after controlling other features |
-| `acceleration` | -0.80 | Mild negative effect |
-| `cylinders_6` | 0.00 | Removed by Lasso — not useful |
-
 ### Linear Model Assumptions
 
 | Assumption | Status | Test Used |
@@ -233,16 +288,8 @@ $$\hat{y} = \frac{1}{T}\sum_{t=1}^{T} f_t(x)$$
 - **Random Forest** outperforms linear models — confirms non-linear relationships
 - **Lasso** correctly removed `cylinders_6` as a non-contributing feature
 - **Log transform on horsepower only** — justified by EDA skewness and outlier analysis
-
-### Prediction for a Sample Car
-*Japanese car, 4 cylinders, 3000 lbs, 100hp, 200cc, acceleration=15, year=1980*
-
-| Model | Predicted MPG |
-|---|---|
-| Lasso CV | 29.16 mpg |
-| Ridge CV | 37.37 mpg |
-| PCA + Regression | 26.84 mpg |
-| Random Forest | 33.89 mpg |
+- **PC1 dominates PCA** with 62.52% — engine characteristics are
+  the strongest driver of fuel efficiency
 
 ---
 
@@ -270,8 +317,8 @@ pip install pandas numpy scikit-learn matplotlib seaborn scipy statsmodels
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/amandawang90-spec/neuefische-data-analysis-180825-advanced_analytics_module_and_projects/blob/main/auto_mpg_prediction_project/auto_mpg_prediction.ipynb
-cd auto_mpg_model_comparison
+git clone https://github.com/amandawang90-spec/neuefische-data-analysis-180825-advanced_analytics_module_and_projects.git
+cd neuefische-data-analysis-180825-advanced_analytics_module_and_projects/auto_mpg_prediction_project
 ```
 
 2. Install dependencies:
@@ -281,7 +328,7 @@ pip install -r requirements.txt
 
 3. Open the notebook:
 ```bash
-jupyter notebook auto_mpg_model_comparison.ipynb
+jupyter notebook auto_mpg_prediction.ipynb
 ```
 
 ---
@@ -291,7 +338,7 @@ jupyter notebook auto_mpg_model_comparison.ipynb
 | Priority | Recommended Model |
 |---|---|
 | **Best prediction accuracy** | Tuned Random Forest (Test R²=0.8909, RMSE=2.3601) |
-| **Interpretability** | Lasso CV (clear feature coefficients) |
-| **Stability** | Lasso CV (smallest gap = 0.0286) |
+| **Interpretability** | Lasso CV /Ridge CV (clear feature coefficients) |
+| **Stability** | Lasso CV /Ridge CV |
 | **Production deployment** | Tuned Random Forest |
 
